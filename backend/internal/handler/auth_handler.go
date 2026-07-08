@@ -6,6 +6,7 @@ import (
 
 	"github.com/KuRoute/kuroute/backend/internal/domain"
 	"github.com/KuRoute/kuroute/backend/internal/services"
+	"github.com/KuRoute/kuroute/backend/package/jwt"
 	"github.com/KuRoute/kuroute/backend/package/response"
 )
 
@@ -19,6 +20,8 @@ func NewAuthHandler(authService *services.AuthService) *AuthHandler {
 
 // POST /api/v1/auth/register
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
 	var req domain.RegisterUserRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		response.Fail(w, http.StatusBadRequest, "INVALID_REQUEST", "Invalid request body")
@@ -30,8 +33,8 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Role != domain.UserRoleStaffSortir && req.Role != domain.UserRoleKurir {
-		response.Fail(w, http.StatusBadRequest, "VALIDATION_ERROR", "Role must be staff_sortir or kurir")
+	if req.Role != domain.UserRoleAdmin {
+		response.Fail(w, http.StatusBadRequest, "VALIDATION_ERROR", "Role must be admin")
 		return
 	}
 
@@ -51,6 +54,8 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 
 // POST /api/v1/auth/login
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
 	var req domain.LoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		response.Fail(w, http.StatusBadRequest, "INVALID_REQUEST", "Invalid request body")
@@ -62,40 +67,27 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := h.authService.Login(req.Email, req.Password)
+	loginResp, err := h.authService.Login(req.Email, req.Password)
 	if err != nil {
 		response.Fail(w, http.StatusUnauthorized, "LOGIN_FAILED", err.Error())
 		return
 	}
 
-	// Check if result is a setup token response (first-time login)
-	if setupResp, ok := result.(*domain.SetupTokenResponse); ok {
-		response.OK(w, http.StatusOK, map[string]interface{}{
-			"setupToken":         setupResp.SetupToken,
-			"user":               setupResp.User,
-		})
-		return
-	}
-
-	// Normal login response
-	if loginResp, ok := result.(*domain.LoginResponse); ok {
-		response.OK(w, http.StatusOK, loginResp)
-		return
-	}
-
-	response.Fail(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unexpected response type")
+	response.OK(w, http.StatusOK, loginResp)
 }
 
-// POST /api/v1/auth/setup-password
-func (h *AuthHandler) SetupPassword(w http.ResponseWriter, r *http.Request) {
-	var req domain.SetupPasswordRequest
+// POST /api/v1/auth/change-password
+func (h *AuthHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	var req domain.ChangePasswordRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		response.Fail(w, http.StatusBadRequest, "INVALID_REQUEST", "Invalid request body")
 		return
 	}
 
-	if req.SetupToken == "" || req.NewPassword == "" {
-		response.Fail(w, http.StatusBadRequest, "VALIDATION_ERROR", "Setup token and new password are required")
+	if req.CurrentPassword == "" || req.NewPassword == "" {
+		response.Fail(w, http.StatusBadRequest, "VALIDATION_ERROR", "Current password and new password are required")
 		return
 	}
 
@@ -104,9 +96,21 @@ func (h *AuthHandler) SetupPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := h.authService.SetupFirstPassword(req.SetupToken, req.NewPassword)
+	tokenString := jwt.ExtractToken(r)
+	if tokenString == "" {
+		response.Fail(w, http.StatusUnauthorized, "UNAUTHORIZED", "Missing authorization token")
+		return
+	}
+
+	claims, err := jwt.ValidateToken(tokenString)
 	if err != nil {
-		response.Fail(w, http.StatusBadRequest, "SETUP_FAILED", err.Error())
+		response.Fail(w, http.StatusUnauthorized, "UNAUTHORIZED", "Invalid or expired token")
+		return
+	}
+
+	resp, err := h.authService.ChangePassword(claims.UserID, req.CurrentPassword, req.NewPassword)
+	if err != nil {
+		response.Fail(w, http.StatusBadRequest, "PASSWORD_CHANGE_FAILED", err.Error())
 		return
 	}
 
@@ -115,6 +119,8 @@ func (h *AuthHandler) SetupPassword(w http.ResponseWriter, r *http.Request) {
 
 // POST /api/v1/auth/refresh
 func (h *AuthHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
 	var req domain.RefreshTokenRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		response.Fail(w, http.StatusBadRequest, "INVALID_REQUEST", "Invalid request body")
@@ -137,6 +143,8 @@ func (h *AuthHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 
 // POST /api/v1/auth/logout
 func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
 	var req domain.LogoutRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		response.Fail(w, http.StatusBadRequest, "INVALID_REQUEST", "Invalid request body")

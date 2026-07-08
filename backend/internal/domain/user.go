@@ -11,6 +11,7 @@ type UserRole string
 const (
 	UserRoleStaffSortir UserRole = "staff_sortir"
 	UserRoleKurir       UserRole = "kurir"
+	UserRoleAdmin       UserRole = "admin"
 )
 
 // Model
@@ -42,7 +43,7 @@ type RegisterUserRequest struct {
 	Name     string    `json:"name"     binding:"required,max=200"`
 	Email    string    `json:"email"    binding:"required,email,max=200"`
 	Phone    string    `json:"phone"    binding:"required,max=20"`
-	Role     UserRole  `json:"role"     binding:"required,oneof=staff_sortir kurir"`
+	Role     UserRole  `json:"role"     binding:"required,oneof=staff_sortir kurir admin"`
 	Password string    `json:"password" binding:"required,min=8"`
 }
 
@@ -51,9 +52,9 @@ type LoginRequest struct {
 	Password string `json:"password" binding:"required"`
 }
 
-type SetupPasswordRequest struct {
-	SetupToken  string `json:"setupToken" binding:"required"`
-	NewPassword string `json:"newPassword" binding:"required,min=8"`
+type ChangePasswordRequest struct {
+    CurrentPassword string `json:"currentPassword" binding:"required"`
+    NewPassword     string `json:"newPassword"      binding:"required,min=8"`
 }
 
 type RefreshTokenRequest struct {
@@ -65,9 +66,10 @@ type LogoutRequest struct {
 }
 
 type UpdateUserRequest struct {
-	Name  *string `json:"name"  binding:"omitempty,max=200"`
-	Email *string `json:"email" binding:"omitempty,email,max=200"`
-	Phone *string `json:"phone" binding:"omitempty,max=20"`
+	ID		uuid.UUID `json:"-"`
+	Name  	string `json:"name"  binding:"omitempty,max=200"`
+	Email 	string `json:"email" binding:"omitempty,email,max=200"`
+	Phone 	string `json:"phone" binding:"omitempty,max=20"`
 }
 
 // Response
@@ -85,18 +87,6 @@ type LoginResponse struct {
 	RefreshToken string       `json:"refreshToken"`
 	ExpiresIn    int          `json:"expiresIn"`
 	User         UserResponse `json:"user"`
-}
-
-type SetupPasswordResponse struct {
-	AccessToken  string       `json:"accessToken"`
-	RefreshToken string       `json:"refreshToken"`
-	ExpiresIn    int          `json:"expiresIn"`
-	User         UserResponse `json:"user"`
-}
-
-type SetupTokenResponse struct {
-	SetupToken string       `json:"setupToken"`
-	User       UserResponse `json:"user"`
 }
 
 type TokenRefreshResponse struct {

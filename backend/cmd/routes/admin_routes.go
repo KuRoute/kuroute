@@ -14,7 +14,7 @@ func RegisterAdminRoutes(router *mux.Router) {
 	protected.Use(middleware.AuthMiddleware)
 
 	admin := protected.PathPrefix("/admin").Subrouter()
-	admin.Use(middleware.RoleMiddleware(domain.UserRoleStaffSortir))
+	admin.Use(middleware.RoleMiddleware(domain.UserRoleAdmin))
 
 	admin.HandleFunc("/users", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("admin users"))

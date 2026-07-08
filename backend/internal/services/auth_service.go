@@ -7,6 +7,7 @@ import (
 	"github.com/KuRoute/kuroute/backend/internal/domain"
 	"github.com/KuRoute/kuroute/backend/internal/repository"
 	"github.com/KuRoute/kuroute/backend/package/jwt"
+	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -32,12 +33,12 @@ func (s *AuthService) RegisterUser(req *domain.RegisterUserRequest) (*domain.Use
 	}
 
 	user := &domain.User{
-		HubID:              req.HubID,
-		Name:               req.Name,
-		Email:              req.Email,
-		Phone:              req.Phone,
-		Role:               req.Role,
-		PasswordHash:       string(hash),
+		HubID:        req.HubID,
+		Name:         req.Name,
+		Email:        req.Email,
+		Phone:        req.Phone,
+		Role:         req.Role,
+		PasswordHash: string(hash),
 	}
 
 	err = s.userRepo.CreateUser(user)
@@ -49,7 +50,7 @@ func (s *AuthService) RegisterUser(req *domain.RegisterUserRequest) (*domain.Use
 	return &response, nil
 }
 
-func (s *AuthService) Login(email, password string) (interface{}, error) {
+func (s *AuthService) Login(email, password string) (*domain.LoginResponse, error) {
 	user, err := s.userRepo.GetUserByEmail(email)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -63,7 +64,6 @@ func (s *AuthService) Login(email, password string) (interface{}, error) {
 		return nil, errors.New("invalid email or password")
 	}
 
-	// Normal login: generate and return both tokens (stateless — no DB save)
 	accessToken, err := jwt.GenerateAccessToken(user.ID, user.Role, user.HubID)
 	if err != nil {
 		return nil, err
@@ -84,17 +84,19 @@ func (s *AuthService) Login(email, password string) (interface{}, error) {
 	}, nil
 }
 
-func (s *AuthService) SetupFirstPassword(setupToken, newPassword string) (*domain.SetupPasswordResponse, error) {
-	claims, err := jwt.ValidateToken(setupToken)
+func (s *AuthService) ChangePassword(userID uuid.UUID, currentPassword, newPassword string) (*domain.LoginResponse, error) {
+	user, err := s.userRepo.GetUserByID(userID)
 	if err != nil {
-		return nil, errors.New("invalid or expired setup token")
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, errors.New("user not found")
+		}
+		return nil, err
 	}
 
-	user, err := s.userRepo.GetUserByID(claims.UserID)
+	err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(currentPassword))
 	if err != nil {
-		return nil, errors.New("user not found")
+		return nil, errors.New("current password is incorrect")
 	}
-
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
 	if err != nil {
@@ -102,13 +104,10 @@ func (s *AuthService) SetupFirstPassword(setupToken, newPassword string) (*domai
 	}
 
 	user.PasswordHash = string(hash)
-
-	err = s.userRepo.UpdateUser(user)
-	if err != nil {
+	if err := s.userRepo.UpdateUser(user); err != nil {
 		return nil, err
 	}
 
-	// Generate and return real tokens (stateless — no DB save)
 	accessToken, err := jwt.GenerateAccessToken(user.ID, user.Role, user.HubID)
 	if err != nil {
 		return nil, err
@@ -121,7 +120,7 @@ func (s *AuthService) SetupFirstPassword(setupToken, newPassword string) (*domai
 
 	expiresIn := int(jwt.GetAccessExpiryDuration().Seconds())
 
-	return &domain.SetupPasswordResponse{
+	return &domain.LoginResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 		ExpiresIn:    expiresIn,
