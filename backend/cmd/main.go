@@ -24,15 +24,20 @@ func main() {
 
 	// Initialize repositories
 	userRepo := repository.NewUserRepository(db)
+	hubRepo := repository.NewHubRepository(db)
 
 	// Initialize services
 	authService := services.NewAuthService(userRepo)
+	hubService := services.NewHubService(hubRepo)
+	userService := services.NewUserService(userRepo)
 
 	// Initialize handlers
 	authHandler := handler.NewAuthHandler(authService)
+	hubHandler := handler.NewHubHandler(hubService)
+	userHandler := handler.NewUserHandler(userService)
 
 	// Setup router
-	router := routes.SetupRouter(authHandler)
+	router := routes.SetupRouter(authHandler, hubHandler, userHandler)
 
 	port := os.Getenv("PORT")
 	if port == "" {

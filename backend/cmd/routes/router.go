@@ -8,6 +8,8 @@ import (
 
 func SetupRouter(
 	authHandler *handler.AuthHandler,
+	hubHandler *handler.HubHandler,
+	userHandler *handler.UserHandler,
 ) *mux.Router {
 
 	router := mux.NewRouter()
@@ -15,7 +17,9 @@ func SetupRouter(
 	router.Use(middleware.CORSMiddleware)
 
 	RegisterAuthRoutes(router, authHandler)
+	RegisterHubRoutes(router, hubHandler)
 	RegisterAdminRoutes(router)
+	RegisterUserRoutes(router, userHandler)
 
 	return router
 }
