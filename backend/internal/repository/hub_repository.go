@@ -44,3 +44,9 @@ func (r *HubRepository) DeleteHub(id uuid.UUID) error {
 	result := r.db.Delete(&domain.Hub{}, "id = ?", id)
 	return result.Error
 }
+
+func (r *HubRepository) ListHubs() ([]domain.Hub, error) {
+	var hubs []domain.Hub
+	result := r.db.Find(&hubs)
+	return hubs, result.Error
+}
