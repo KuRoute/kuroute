@@ -17,7 +17,7 @@ func RegisterAuthRoutes(router *mux.Router, authHandler *handler.AuthHandler) {
 	auth.HandleFunc("/register", authHandler.Register).
 		Methods(http.MethodPost, http.MethodOptions)
 
-	auth.HandleFunc("/setup-password", authHandler.SetupPassword).
+	auth.HandleFunc("/change-password", authHandler.ChangePassword).
 		Methods(http.MethodPost, http.MethodOptions)
 
 	auth.HandleFunc("/refresh", authHandler.RefreshToken).
