@@ -21,8 +21,8 @@ type CreateHubRequest struct {
 }
 
 type UpdateHubRequest struct {
-	Name *string `json:"name" binding:"omitempty,max=300"`
-	City *string `json:"city" binding:"omitempty,max=300"`
+	Name  string `json:"name" binding:"omitempty,max=300"`
+	City  string `json:"city" binding:"omitempty,max=300"`
 }
 
 // Response
