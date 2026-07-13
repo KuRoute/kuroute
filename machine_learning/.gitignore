@@ -1,0 +1,59 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual Environment
+.venv/
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+
+# Environment
+.env
+
+# Python Packaging
+build/
+dist/
+*.egg-info/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Logs
+*.log
+
+# Models
+artifacts/models/*
+!artifacts/models/.gitkeep
+
+# Metrics
+artifacts/metrics/*
+!artifacts/metrics/.gitkeep
+
+# Generated Dataset
+data/generated/*
+!data/generated/.gitkeep
+
+# Processed Dataset
+data/processed/*
+!data/processed/.gitkeep
+
+# OSM Cache
+data/osm/*
+!data/osm/.gitkeep
+
+# OS
+.DS_Store
+Thumbs.db
+
+data.py
