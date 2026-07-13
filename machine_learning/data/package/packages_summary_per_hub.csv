@@ -1,0 +1,16 @@
+hub_id,hub_nama,kota,jumlah_paket
+H01,Jne Gateway Surabaya,Surabaya,94
+H02,Gudang JNE Kenjeran,Surabaya,113
+H03,GATEWAY J&T CARGO SURABAYA,Surabaya,140
+H04,Gateway Mini J&T Surabaya Barat,Surabaya,124
+H05,JNE Express,Malang,119
+H06,Gudang JNE,Malang,100
+H07,JNE Cabang Utama Sidoarjo,Sidoarjo,97
+H08,J&T Express DC_SDA,Sidoarjo,93
+H09,J&T Express DC_WARU,Sidoarjo,129
+H10,J&T Express Surabaya Kidul SUB94,Surabaya,119
+H11,Pergudangan JNE,Sidoarjo,133
+H12,Gudang JNE Gresik,Gresik,136
+H13,Gateway J&T Cangkir,Gresik,89
+H14,JNE Warehouse Mojokerto,Mojokerto,96
+H15,J&T Express DC Majapahit,Mojokerto,124
