@@ -41,17 +41,17 @@ func (Package) TableName() string { return "package" }
 // lat/lng should be resolved via geocoding before this request is saved —
 // do NOT rely on the client to provide coordinates; geocode server-side.
 type CreatePackageRequest struct {
-	TrackingCode  string  `json:"trackingCode"  binding:"required,max=100"`
-	RecipientName string  `json:"recipientName" binding:"required,max=200"`
-	AddressText   string  `json:"addressText"   binding:"required"`
-	Lat           float64 `json:"lat"           binding:"required"`
-	Lng           float64 `json:"lng"           binding:"required"`
+	HubID         uuid.UUID `json:"hubId"         binding:"required"`
+	TrackingCode  string    `json:"trackingCode"  binding:"required,max=100"`
+	RecipientName string    `json:"recipientName" binding:"required,max=200"`
+	AddressText   string    `json:"addressText"   binding:"required"`
+	Lat           float64   `json:"lat"           binding:"required"`
+	Lng           float64   `json:"lng"           binding:"required"`
 }
 
-// UpdatePackageStatusRequest is used internally by the system
-// (route solver, delivery report handler) to advance package state machine.
-// Not exposed as a public endpoint — status transitions are side effects
-// of other operations (scan, assign, deliver).
+// UpdatePackageStatusRequest is used by package endpoints to update status.
+// Status changes are intentionally limited to a dedicated endpoint and should
+// reflect transitions in the package lifecycle.
 type UpdatePackageStatusRequest struct {
 	Status PackageStatus `json:"status" binding:"required,oneof=received sorted assigned in_delivery delivered failed"`
 }

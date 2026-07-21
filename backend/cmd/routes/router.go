@@ -10,6 +10,7 @@ func SetupRouter(
 	authHandler *handler.AuthHandler,
 	hubHandler *handler.HubHandler,
 	userHandler *handler.UserHandler,
+	packageHandler *handler.PackageHandler,
 ) *mux.Router {
 
 	router := mux.NewRouter()
@@ -20,6 +21,7 @@ func SetupRouter(
 	RegisterHubRoutes(router, hubHandler)
 	RegisterAdminRoutes(router)
 	RegisterUserRoutes(router, userHandler)
+	RegisterPackageRoutes(router, packageHandler)
 
 	return router
 }
