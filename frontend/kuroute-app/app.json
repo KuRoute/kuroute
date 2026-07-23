@@ -28,8 +28,7 @@
       [
         "@rnmapbox/maps",
         {
-          "RNMapboxMapsVersion": "10.16.4",
-          "RNMapboxMapsDownloadToken": "sk.eyJ1IjoicmFrdXRvdSIsImEiOiJjbXJrZHdyeXUxamYwMnpxenhheHRrbmhpIn0.B_FBREVq0jFkdECa_DwEjQ"
+          "RNMapboxMapsVersion": "10.16.4"
         }
       ],
       [
