@@ -24,6 +24,11 @@ type AuthUser struct {
 
 func AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodOptions {
+            next.ServeHTTP(w, r)
+            return
+        }
+
 		tokenString := jwt.ExtractToken(r)
 		if tokenString == "" {
 			response.Fail(w, http.StatusUnauthorized, "UNAUTHORIZED", "Missing authorization token")
