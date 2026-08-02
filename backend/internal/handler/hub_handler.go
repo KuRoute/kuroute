@@ -41,24 +41,35 @@ func (h *HubHandler) CreateHub(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req domain.CreateHubRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	var reqs []domain.CreateHubRequest
+	if err := json.NewDecoder(r.Body).Decode(&reqs); err != nil {
 		response.Fail(w, http.StatusBadRequest, "INVALID_REQUEST", "Invalid request body")
 		return
 	}
 
-	if req.Name == "" || req.City == "" {
-		response.Fail(w, http.StatusBadRequest, "VALIDATION_ERROR", "name and city are required")
+	if len(reqs) == 0 {
+		response.Fail(w, http.StatusBadRequest, "VALIDATION_ERROR", "Request body cannot be empty")
 		return
 	}
 
-	hubResp, err := h.hubService.CreateHub(&req)
-	if err != nil {
-		response.Fail(w, http.StatusInternalServerError, "CREATE_FAILED", err.Error())
-		return
+	var hubs []domain.HubResponse
+
+	for _, req := range reqs {
+		if req.Name == "" || req.City == "" {
+			response.Fail(w, http.StatusBadRequest, "VALIDATION_ERROR", "name and city are required")
+			return
+		}
+
+		hubResp, err := h.hubService.CreateHub(&req)
+		if err != nil {
+			response.Fail(w, http.StatusInternalServerError, "CREATE_FAILED", err.Error())
+			return
+		}
+
+		hubs = append(hubs, *hubResp)
 	}
 
-	response.OK(w, http.StatusCreated, hubResp)
+	response.OK(w, http.StatusCreated, hubs)
 }
 
 // GET /api/v1/hubs

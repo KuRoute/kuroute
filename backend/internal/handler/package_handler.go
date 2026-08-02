@@ -131,19 +131,30 @@ func (h *PackageHandler) CreatePackage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req domain.CreatePackageRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	var reqs []domain.CreatePackageRequest
+	if err := json.NewDecoder(r.Body).Decode(&reqs); err != nil {
 		response.Fail(w, http.StatusBadRequest, "INVALID_REQUEST", "Invalid JSON request body")
 		return
 	}
 
-	packResp, err := h.packageService.CreatePackage(&req)
-	if err != nil {
-		response.Fail(w, http.StatusBadRequest, "CREATE_FAILED", err.Error())
+	if len(reqs) == 0 {
+		response.Fail(w, http.StatusBadRequest, "VALIDATION_ERROR", "Request body cannot be empty")
 		return
 	}
 
-	response.OK(w, http.StatusCreated, packResp)
+	var packages []domain.PackageResponse
+
+	for _, req := range reqs {
+		packageResp, err := h.packageService.CreatePackage(&req)
+		if err != nil {
+			response.Fail(w, http.StatusInternalServerError, "CREATE_FAILED", err.Error())
+			return
+		}
+
+		packages = append(packages, *packageResp)
+	}
+
+	response.OK(w, http.StatusCreated, packages)
 }
 
 func (h *PackageHandler) UpdatePackageStatus(w http.ResponseWriter, r *http.Request) {
