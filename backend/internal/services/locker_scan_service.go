@@ -40,7 +40,7 @@ func (s *LockerScanService) ScanIn(actor middleware.AuthUser, req *domain.ScanPa
 		return nil, errors.New("request can't be empty")
 	}
 
-	if actor.Role != domain.UserRoleAdmin && actor.Role != domain.UserRoleStaffSortir {
+	if  actor.Role != domain.UserRoleStaffSortir {
 		return nil, ErrForbiddenHubAccess
 	}
 
@@ -52,7 +52,7 @@ func (s *LockerScanService) ScanIn(actor middleware.AuthUser, req *domain.ScanPa
 		return nil, err
 	}
 
-	if actor.Role != domain.UserRoleAdmin && actor.Role != domain.UserRoleStaffSortir && locker.HubID != actor.HubID {
+	if actor.Role != domain.UserRoleStaffSortir && locker.HubID != actor.HubID {
 		return nil, ErrForbiddenHubAccess
 	}
 
@@ -64,7 +64,7 @@ func (s *LockerScanService) ScanIn(actor middleware.AuthUser, req *domain.ScanPa
 		return nil, err
 	}
 
-	if actor.Role != domain.UserRoleAdmin && pkg.HubID != actor.HubID {
+	if actor.Role != domain.UserRoleStaffSortir && pkg.HubID != actor.HubID {
 		return nil, ErrForbiddenHubAccess
 	}
 
@@ -100,7 +100,7 @@ func (s *LockerScanService) ScanOut(actor middleware.AuthUser, req *domain.ScanP
 		return nil, errors.New("request can't be empty")
 	}
 
-	if actor.Role != domain.UserRoleAdmin && actor.Role != domain.UserRoleKurir {
+	if actor.Role != domain.UserRoleKurir {
 		return nil, ErrForbiddenHubAccess
 	}
 
@@ -120,7 +120,7 @@ func (s *LockerScanService) ScanOut(actor middleware.AuthUser, req *domain.ScanP
 		return nil, err
 	}
 
-	if actor.Role != domain.UserRoleAdmin && locker.HubID != actor.HubID {
+	if actor.Role != domain.UserRoleKurir && locker.HubID != actor.HubID {
 		return nil, ErrForbiddenHubAccess
 	}
 
@@ -155,7 +155,7 @@ func (s *LockerScanService) GetLockerScan(actor middleware.AuthUser, id uuid.UUI
 		return nil, err
 	}
 
-	if actor.Role != domain.UserRoleAdmin && locker.HubID != actor.HubID {
+	if locker.HubID != actor.HubID {
 		return nil, ErrForbiddenHubAccess
 	}
 
@@ -172,7 +172,7 @@ func (s *LockerScanService) ListLockerScansByLocker(actor middleware.AuthUser, l
 		return nil, err
 	}
 
-	if actor.Role != domain.UserRoleAdmin && locker.HubID != actor.HubID {
+	if actor.Role != domain.UserRoleAdmin && actor.Role != domain.UserRoleStaffSortir && actor.Role != domain.UserRoleKurir && locker.HubID != actor.HubID {
 		return nil, ErrForbiddenHubAccess
 	}
 
@@ -208,7 +208,7 @@ func (s *LockerScanService) ListLockerScansByPackage(actor middleware.AuthUser, 
 }
 
 func (s *LockerScanService) ListLockerScansByCourierToday(actor middleware.AuthUser) ([]domain.LockerScanResponse, error) {
-	if actor.Role != domain.UserRoleAdmin && actor.Role != domain.UserRoleKurir {
+	if actor.Role != domain.UserRoleKurir {
 		return nil, ErrForbiddenHubAccess
 	}
 
