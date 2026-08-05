@@ -13,6 +13,7 @@ func SetupRouter(
 	packageHandler *handler.PackageHandler,
 	lockerHandler *handler.LockerHandler,
 	lockerScanHandler *handler.LockerScanHandler,
+	batchAssignmentHandler *handler.BatchAssignmentHandler,
 ) *mux.Router {
 
 	router := mux.NewRouter()
@@ -26,6 +27,7 @@ func SetupRouter(
 	RegisterPackageRoutes(router, packageHandler)
 	RegisterLockerRoutes(router, lockerHandler)
 	RegisterLockerScanRoutes(router, lockerScanHandler)
+	RegisterBatchAssignmentRoutes(router, batchAssignmentHandler)
 
 	return router
 }

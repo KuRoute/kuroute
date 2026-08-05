@@ -28,6 +28,7 @@ func main() {
 	packageRepo := repository.NewPackageRepository(db)
 	lockerRepo := repository.NewLockerRepository(db)
 	lockerScanRepo := repository.NewLockerScanRepository(db)
+	batchAssignmentRepo := repository.NewBatchAssignmentRepository(db)
 
 	// Initialize services
 	authService := services.NewAuthService(userRepo)
@@ -36,6 +37,7 @@ func main() {
 	packageService := services.NewPackageService(packageRepo)
 	lockerService := services.NewLockerService(lockerRepo, hubRepo)
 	lockerScanService := services.NewLockerScanService(lockerScanRepo, lockerRepo, packageRepo)
+	batchAssignmentService := services.NewBatchAssignmentService(batchAssignmentRepo, lockerScanRepo, lockerRepo, packageRepo, userRepo)
 
 	// Initialize handlers
 	authHandler := handler.NewAuthHandler(authService)
@@ -44,9 +46,10 @@ func main() {
 	packageHandler := handler.NewPackageHandler(packageService)
 	lockerHandler := handler.NewLockerHandler(lockerService)
 	lockerScanHandler := handler.NewLockerScanHandler(lockerScanService)
+	batchAssignmentHandler := handler.NewBatchAssignmentHandler(batchAssignmentService)
 
 	// Setup router
-	router := routes.SetupRouter(authHandler, hubHandler, userHandler, packageHandler, lockerHandler, lockerScanHandler)
+	router := routes.SetupRouter(authHandler, hubHandler, userHandler, packageHandler, lockerHandler, lockerScanHandler, batchAssignmentHandler)
 
 	port := os.Getenv("PORT")
 	if port == "" {
