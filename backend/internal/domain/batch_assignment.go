@@ -8,26 +8,33 @@ import (
 
 // Model
 type BatchAssignment struct {
-	Base
-	LockerID       uuid.UUID `gorm:"type:uuid;not null;index"   json:"lockerId"`
-	CourierID      uuid.UUID `gorm:"type:uuid;not null;index"   json:"courierId"`
-	AssignedByID   uuid.UUID `gorm:"type:uuid;not null;column:assigned_by" json:"assignedById"`
-	BatchDate      time.Time `gorm:"type:date;not null;default:current_date" json:"batchDate"`
-	BatchSequence  int16     `gorm:"not null;default:1"         json:"batchSequence"`
-	AssignedAt     time.Time `gorm:"not null;default:now()"     json:"assignedAt"`
+	ID            uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	LockerID      uuid.UUID `gorm:"type:uuid;not null;index"   json:"lockerId"`
+	CourierID     uuid.UUID `gorm:"type:uuid;not null;index"   json:"courierId"`
+	AssignedByID  uuid.UUID `gorm:"type:uuid;not null;column:assigned_by" json:"assignedById"`
+	BatchDate     time.Time `gorm:"type:date;not null;default:current_date" json:"batchDate"`
+	BatchSequence int16     `gorm:"not null;default:1"         json:"batchSequence"`
+	AssignedAt    time.Time `gorm:"not null;default:now()"     json:"assignedAt"`
 
-	Locker       Locker       `gorm:"foreignKey:LockerID"     json:"-"`
-	Courier      User         `gorm:"foreignKey:CourierID"    json:"-"`
-	AssignedBy   User         `gorm:"foreignKey:AssignedByID" json:"-"`
+	Locker     Locker `gorm:"foreignKey:LockerID"     json:"-"`
+	Courier    User   `gorm:"foreignKey:CourierID"    json:"-"`
+	AssignedBy User   `gorm:"foreignKey:AssignedByID" json:"-"`
 }
 
 func (BatchAssignment) TableName() string { return "batch_assignment" }
 
 // Request
 type AssignLockerToCourierRequest struct {
-	LockerID      uuid.UUID `json:"lockerId"      binding:"required"`
-	CourierID     uuid.UUID `json:"courierId"     binding:"required"`
-	BatchSequence int16     `json:"batchSequence" binding:"required,min=1"`
+	LockerID      uuid.UUID  `json:"lockerId"      binding:"required"`
+	CourierID     uuid.UUID  `json:"courierId"     binding:"required"`
+	BatchSequence int16      `json:"batchSequence" binding:"required,min=1"`
+	BatchDate     *time.Time `json:"batchDate,omitempty"`
+}
+
+type UpdateBatchAssignmentRequest struct {
+	CourierID     *uuid.UUID `json:"courierId,omitempty"`
+	BatchSequence *int16     `json:"batchSequence,omitempty"`
+	BatchDate     *time.Time `json:"batchDate,omitempty"`
 }
 
 // Response
