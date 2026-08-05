@@ -18,11 +18,11 @@ const (
 
 // Model
 type CourierBatch struct {
-	Base
-	BatchAssignmentID uuid.UUID   `gorm:"type:uuid;not null;uniqueIndex" json:"batchAssignmentId"`
-	Status            BatchStatus `gorm:"type:batch_status;not null;default:'pending_route'" json:"status"`
-	StartedAt         *time.Time  `gorm:"default:null"                   json:"startedAt"`   // nil until courier taps "mulai"
-	CompletedAt       *time.Time  `gorm:"default:null"                   json:"completedAt"` // nil until all stops done
+	ID            		uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	BatchAssignmentID 	uuid.UUID   `gorm:"type:uuid;not null;uniqueIndex" json:"batchAssignmentId"`
+	Status            	BatchStatus `gorm:"type:batch_status;not null;default:'pending_route'" json:"status"`
+	StartedAt         	*time.Time  `gorm:"default:null"                   json:"startedAt"`   // nil until courier taps "mulai"
+	CompletedAt       	*time.Time  `gorm:"default:null"                   json:"completedAt"` // nil until all stops done
 
 	BatchAssignment BatchAssignment `gorm:"foreignKey:BatchAssignmentID" json:"-"`
 }

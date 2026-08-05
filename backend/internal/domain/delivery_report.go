@@ -29,7 +29,7 @@ func (r DeliveryResult) IsFailure() bool {
 // One-to-many: a stop can have multiple attempts (e.g. retry next day).
 // Never overwrite — always insert a new row per attempt.
 type DeliveryReport struct {
-	Base
+	ID            uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
 	RouteStopID   uuid.UUID      `gorm:"type:uuid;not null;index" json:"routeStopId"`
 	Result        DeliveryResult `gorm:"type:delivery_result;not null" json:"result"`
 	FailureReason *string        `gorm:"type:text"                json:"failureReason"` // nil when result=success
