@@ -13,7 +13,7 @@ import (
 // is under active research — see ADR in docs/adr/002-routing-algorithm.md.
 // Once the algorithm is finalized, add a CHECK constraint via migration.
 type Route struct {
-	Base
+	ID            	 uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
 	CourierBatchID   uuid.UUID `gorm:"type:uuid;not null;uniqueIndex" json:"courierBatchId"`
 	AlgorithmUsed    string    `gorm:"type:text;not null;default:'unknown'" json:"algorithmUsed"`
 	TotalDistanceKm  float64   `gorm:"type:numeric(8,3);not null"     json:"totalDistanceKm"`

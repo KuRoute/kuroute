@@ -9,7 +9,7 @@ import "github.com/google/uuid"
 // lat/lng are copied from Package at computation time to keep
 // the route immutable even if the package address is later corrected.
 type RouteStop struct {
-	Base
+	ID        uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
 	RouteID   uuid.UUID     `gorm:"type:uuid;not null;index:idx_route_stop_route"  json:"routeId"`
 	PackageID uuid.UUID     `gorm:"type:uuid;not null"                             json:"packageId"`
 	StopOrder int16         `gorm:"not null;index:idx_route_stop_route"            json:"stopOrder"`
