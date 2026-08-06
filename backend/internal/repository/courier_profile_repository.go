@@ -23,10 +23,27 @@ func (r *CourierProfileRepository) CreateCourierProfile(profile *domain.CourierP
 	return result.Error
 }
 
+func (r *CourierProfileRepository) FindCouriersByHubID(hubID uuid.UUID, vehicleType *domain.VehicleType) ([]domain.CourierProfile, error) {
+	var profiles []domain.CourierProfile
+
+	query := r.db.Joins("JOIN users ON users.id = courier_profile.user_id").Where("users.hub_id = ?", hubID)
+
+	if vehicleType != nil {
+		query = query.Where("courier_profile.vehicle_type = ?", *vehicleType)
+	}
+
+	result := query.Find(&profiles)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return profiles, nil
+}
+
 func (r *CourierProfileRepository) GetCourierProfileByUserID(userId uuid.UUID) (*domain.CourierProfile, error) {
 	var profile domain.CourierProfile
 
-	result := r.db.First(&profile, "id = ?", userId)
+	result := r.db.First(&profile, "user_id = ?", userId)
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return nil, sql.ErrNoRows
 	}
@@ -35,9 +52,9 @@ func (r *CourierProfileRepository) GetCourierProfileByUserID(userId uuid.UUID) (
 }
 
 func (r *CourierProfileRepository) UpdateCourierProfile(profile *domain.CourierProfile) error {
-	result := r.db.Model(&domain.CourierProfile{}).Where("id = ?", profile.UserID).Updates(map[string]interface{}{
-		"user_id":        profile.UserID,
-		"vehicle_type":   profile.VehicleType,
+	result := r.db.Model(&domain.CourierProfile{}).Where("user_id = ?", profile.UserID).Updates(map[string]interface{}{
+		"vehicle_type":  profile.VehicleType,
+		"vehicle_plate": profile.VehiclePlate,
 	})
 	return result.Error
 }
