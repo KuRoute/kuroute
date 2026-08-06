@@ -29,6 +29,7 @@ func main() {
 	lockerRepo := repository.NewLockerRepository(db)
 	lockerScanRepo := repository.NewLockerScanRepository(db)
 	batchAssignmentRepo := repository.NewBatchAssignmentRepository(db)
+	courierProfileRepo := repository.NewCourierProfileRepository(db)
 
 	// Initialize services
 	authService := services.NewAuthService(userRepo)
@@ -38,6 +39,7 @@ func main() {
 	lockerService := services.NewLockerService(lockerRepo, hubRepo)
 	lockerScanService := services.NewLockerScanService(lockerScanRepo, lockerRepo, packageRepo)
 	batchAssignmentService := services.NewBatchAssignmentService(batchAssignmentRepo, lockerScanRepo, lockerRepo, packageRepo, userRepo)
+	courierProfileService := services.NewCourierProfileService(courierProfileRepo, userRepo)
 
 	// Initialize handlers
 	authHandler := handler.NewAuthHandler(authService)
@@ -47,9 +49,10 @@ func main() {
 	lockerHandler := handler.NewLockerHandler(lockerService)
 	lockerScanHandler := handler.NewLockerScanHandler(lockerScanService)
 	batchAssignmentHandler := handler.NewBatchAssignmentHandler(batchAssignmentService)
+	courierProfileHandler := handler.NewCourierProfileHandler(courierProfileService)
 
 	// Setup router
-	router := routes.SetupRouter(authHandler, hubHandler, userHandler, packageHandler, lockerHandler, lockerScanHandler, batchAssignmentHandler)
+	router := routes.SetupRouter(authHandler, hubHandler, userHandler, packageHandler, lockerHandler, lockerScanHandler, batchAssignmentHandler, courierProfileHandler)
 
 	port := os.Getenv("PORT")
 	if port == "" {
