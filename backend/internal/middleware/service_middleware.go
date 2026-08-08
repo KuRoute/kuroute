@@ -1,75 +1,70 @@
 package middleware
 
 import (
-	"context"
 	"net/http"
+	"context"
 
 	"github.com/KuRoute/kuroute/backend/internal/domain"
 	"github.com/KuRoute/kuroute/backend/package/jwt"
 	"github.com/KuRoute/kuroute/backend/package/response"
-	"github.com/google/uuid"
 )
 
-type contextKey string
+type serviceContext string
 
 const (
-	UserContextKey contextKey = "user"
+	ServiceContextKey serviceContext = "service"
 )
 
-type AuthUser struct {
-	UserID uuid.UUID
-	Role   domain.UserRole
-	HubID  uuid.UUID
+type AuthService struct {
+	Service	domain.ServiceName
 }
 
-func AuthMiddleware(next http.Handler) http.Handler {
+func ServiceMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodOptions {
             next.ServeHTTP(w, r)
             return
         }
 
-		tokenString := jwt.ExtractTokenAuth(r)
+		tokenString := jwt.ExtractTokenService(r)
 		if tokenString == "" {
 			response.Fail(w, http.StatusUnauthorized, "UNAUTHORIZED", "Missing authorization token")
 			return
 		}
 
-		claims, err := jwt.ValidateTokenAuth(tokenString)
+		claims, err := jwt.ValidateTokenService(tokenString)
 		if err != nil {
 			response.Fail(w, http.StatusUnauthorized, "UNAUTHORIZED", "Invalid or expired token")
 			return
 		}
 
-		authUser := &AuthUser{
-			UserID: claims.UserID,
-			Role:   claims.Role,
-			HubID:  claims.HubID,
+		authService := &AuthService{
+			Service: claims.Service,
 		}
 
-		ctx := context.WithValue(r.Context(), UserContextKey, authUser)
+		ctx := context.WithValue(r.Context(), ServiceContextKey, authService)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 
-func RoleMiddleware(roles ...domain.UserRole) func(http.Handler) http.Handler {
+func NameServiceMiddleware(serviceName ...domain.ServiceName) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			authUser, ok := r.Context().Value(UserContextKey).(*AuthUser)
-			if !ok || authUser == nil {
-				response.Fail(w, http.StatusUnauthorized, "UNAUTHORIZED", "Authentication required")
+			authService, ok := r.Context().Value(ServiceContextKey).(*AuthService)
+			if !ok || authService == nil {
+				response.Fail(w, http.StatusUnauthorized, "UNAUTHORIZED", "Service name required")
 				return
 			}
 
-			hasRole := false
-			for _, role := range roles {
-				if authUser.Role == role {
-					hasRole = true
+			hasName := false
+			for _, service := range serviceName {
+				if authService.Service == service {
+					hasName = true
 					break
 				}
 			}
 
-			if !hasRole {
+			if !hasName {
 				response.Fail(w, http.StatusForbidden, "FORBIDDEN", "Insufficient permissions")
 				return
 			}
@@ -79,10 +74,10 @@ func RoleMiddleware(roles ...domain.UserRole) func(http.Handler) http.Handler {
 	}
 }
 
-func GetAuthUser(r *http.Request) *AuthUser {
-	authUser, ok := r.Context().Value(UserContextKey).(*AuthUser)
+func GetAuthService(r *http.Request) *AuthService {
+	authService, ok := r.Context().Value(ServiceContextKey).(*AuthService)
 	if !ok {
 		return nil
 	}
-	return authUser
+	return authService
 }
