@@ -72,6 +72,29 @@ func GenerateRefreshToken(userID uuid.UUID, role domain.UserRole, hubID uuid.UUI
 	return token.SignedString([]byte(secretKey))
 }
 
+func GenerateServiceToken(serviceName domain.ServiceName) (string, error) {
+	secretKey := getSecretKey()
+	if secretKey == "" {
+		return "", errors.New("JWT_SECRET not set")
+	}
+
+	expiryStr := os.Getenv("JWT_SERVICE_EXPIRY")
+	expiry, err := time.ParseDuration(expiryStr)
+	if err != nil || expiryStr == "" {
+		expiry = 720 * time.Hour
+	}
+
+	claims := &domain.ServiceClaims{
+		Service: serviceName,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(expiry)),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+		},
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString([]byte(secretKey))
+}
+
 func GenerateSetupToken(userID uuid.UUID) (string, error) {
 	secretKey := getSecretKey()
 	if secretKey == "" {
@@ -89,7 +112,7 @@ func GenerateSetupToken(userID uuid.UUID) (string, error) {
 	return token.SignedString([]byte(secretKey))
 }
 
-func ValidateToken(tokenString string) (*domain.JWTClaims, error) {
+func ValidateTokenAuth(tokenString string) (*domain.JWTClaims, error) {
 	secretKey := getSecretKey()
 	if secretKey == "" {
 		return nil, errors.New("JWT_SECRET not set")
@@ -113,7 +136,31 @@ func ValidateToken(tokenString string) (*domain.JWTClaims, error) {
 	return nil, errors.New("invalid token")
 }
 
-func ExtractToken(r *http.Request) string {
+func ValidateTokenService(tokenString string) (*domain.ServiceClaims, error) {
+	secretKey := getSecretKey()
+	if secretKey == "" {
+		return nil, errors.New("JWT_SECRET not set")
+	}
+
+	token, err := jwt.ParseWithClaims(tokenString, &domain.ServiceClaims{}, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, errors.New("invalid signing method")
+		}
+		return []byte(secretKey), nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	if claims, ok := token.Claims.(*domain.ServiceClaims); ok && token.Valid {
+		return claims, nil
+	}
+
+	return nil, errors.New("invalid token")
+}
+
+func ExtractTokenAuth(r *http.Request) string {
 	authHeader := r.Header.Get("Authorization")
 	fmt.Printf("Authorization: %q\n", r.Header.Get("Authorization"))
 
@@ -130,18 +177,49 @@ func ExtractToken(r *http.Request) string {
 	return parts[1]
 }
 
+func ExtractTokenService(r *http.Request) string {
+	authHeader := r.Header.Get("Authorization")
+	fmt.Printf("Authorization: %q\n", r.Header.Get("Authorization"))
+
+	parts := strings.Fields(authHeader)
+
+	if len(parts) != 2 {
+		return ""
+	}
+
+	if parts[0] != "Service" {
+		return ""
+	}
+
+	return parts[1]
+}
+
 func ExtractUserID(r *http.Request) (uuid.UUID, error) {
-	tokenString := ExtractToken(r)
+	tokenString := ExtractTokenAuth(r)
 	if tokenString == "" {
 		return uuid.Nil, errors.New("no token provided")
 	}
 
-	claims, err := ValidateToken(tokenString)
+	claims, err := ValidateTokenAuth(tokenString)
 	if err != nil {
 		return uuid.Nil, err
 	}
 
 	return claims.UserID, nil
+}
+
+func ExtractServiceName(r *http.Request) (domain.ServiceName, error) {
+	tokenString := ExtractTokenService(r)
+	if tokenString == "" {
+		return "", errors.New("no token provided")
+	}
+
+	claims, err := ValidateTokenService(tokenString)
+	if err != nil {
+		return "", err
+	}
+
+	return claims.Service, nil
 }
 
 func HashToken(tokenString string) string {
@@ -160,6 +238,15 @@ func GetAccessExpiryDuration() time.Duration {
 
 func GetRefreshExpiryDuration() time.Duration {
 	expiryStr := os.Getenv("JWT_REFRESH_EXPIRY")
+	expiry, err := time.ParseDuration(expiryStr)
+	if err != nil || expiryStr == "" {
+		return 720 * time.Hour
+	}
+	return expiry
+}
+
+func GetServiceExpiryDuration() time.Duration {
+	expiryStr := os.Getenv("JWT_SERVICE_EXPIRY")
 	expiry, err := time.ParseDuration(expiryStr)
 	if err != nil || expiryStr == "" {
 		return 720 * time.Hour
