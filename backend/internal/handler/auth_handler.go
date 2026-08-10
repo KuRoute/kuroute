@@ -96,13 +96,13 @@ func (h *AuthHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tokenString := jwt.ExtractToken(r)
+	tokenString := jwt.ExtractTokenAuth(r)
 	if tokenString == "" {
 		response.Fail(w, http.StatusUnauthorized, "UNAUTHORIZED", "Missing authorization token")
 		return
 	}
 
-	claims, err := jwt.ValidateToken(tokenString)
+	claims, err := jwt.ValidateTokenAuth(tokenString)
 	if err != nil {
 		response.Fail(w, http.StatusUnauthorized, "UNAUTHORIZED", "Invalid or expired token")
 		return
