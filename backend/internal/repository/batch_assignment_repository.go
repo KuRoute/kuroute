@@ -128,6 +128,6 @@ func (r *BatchAssignmentRepository) FindRouteByAssignmentID(batchAssignmentID uu
 
 func (r *BatchAssignmentRepository) FindRouteStopsByRouteID(routeID uuid.UUID) ([]domain.RouteStop, error) {
 	var stops []domain.RouteStop
-	result := r.db.Where("route_id = ?", routeID).Order("stop_order ASC").Find(&stops)
+	result := r.db.Preload("Package").Where("route_id = ?", routeID).Order("stop_order ASC").Find(&stops)
 	return stops, result.Error
 }
