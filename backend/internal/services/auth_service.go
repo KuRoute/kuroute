@@ -130,7 +130,7 @@ func (s *AuthService) ChangePassword(userID uuid.UUID, currentPassword, newPassw
 
 func (s *AuthService) RefreshToken(oldRefreshToken string) (*domain.TokenRefreshResponse, error) {
 	// Stateless validation: verify the refresh token cryptographically
-	claims, err := jwt.ValidateToken(oldRefreshToken)
+	claims, err := jwt.ValidateTokenAuth(oldRefreshToken)
 	if err != nil {
 		return nil, errors.New("invalid or expired refresh token")
 	}
