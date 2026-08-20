@@ -28,7 +28,8 @@ var (
 	ErrCourierNotFound         = errors.New("courier not found")
 	ErrRouteNotFound           = errors.New("route not found")
 	ErrBatchAlreadyStarted     = errors.New("batch has already started")
-	ErrLockerEmpty			   = errors.New("locker has no packages ready for assignment")
+	ErrNoPackagesToStart       = errors.New("no assigned packages are ready to start")
+	ErrLockerEmpty             = errors.New("locker has no packages ready for assignment")
 )
 
 func NewBatchAssignmentService(batchAssignmentRepository *repository.BatchAssignmentRepository, lockerScanRepository *repository.LockerScanRepository, lockerRepository *repository.LockerRepository, packageRepository *repository.PackageRepository, userRepository *repository.UserRepository) *BatchAssignmentService {
@@ -331,11 +332,18 @@ func (s *BatchAssignmentService) StartBatch(actor middleware.AuthUser, id uuid.U
 	}
 
 	now := time.Now()
-	courierBatch.Status = domain.BatchStatusInProgress
-	courierBatch.StartedAt = &now
-	if err := s.batchAssignmentRepository.UpdateCourierBatch(courierBatch); err != nil {
+	updated, err := s.batchAssignmentRepository.StartCourierBatch(courierBatch.ID, assignment.LockerID, now)
+	if err != nil {
+		if errors.Is(err, repository.ErrBatchStatusTransition) {
+			return nil, ErrBatchAssignmentLocked
+		}
 		return nil, err
 	}
+	if updated == 0 {
+		return nil, ErrNoPackagesToStart
+	}
+	courierBatch.Status = domain.BatchStatusInProgress
+	courierBatch.StartedAt = &now
 
 	resp := domain.NewCourierBatchResponse(courierBatch)
 	return &resp, nil

@@ -98,29 +98,20 @@ func (s *PackageService) canUpdatePackageStatus(current, next domain.PackageStat
 
 	switch current {
 	case domain.PackageStatusReceived:
-		// received -> sorted: staff_sortir via LockerScanService.ScanIn (internal call)
-		// dipicu saat staff memindai paket masuk ke locker hasil clustering,
-		// bukan otomatis dari hasil clustering Python - clustering hanya
-		// membuat rencana penempatan (Locker), belum mengubah status package.
 		return next == domain.PackageStatusSorted && role == domain.UserRoleStaffSortir
 
 	case domain.PackageStatusSorted:
-		// sorted -> assigned: kurir via LockerScanService.ScanOut (internal call)
-		// dipicu saat kurir memindai paket keluar dari locker untuk mulai rute.
 		return next == domain.PackageStatusAssigned && role == domain.UserRoleKurir
 
 	case domain.PackageStatusAssigned:
-		// assigned -> in_delivery: kurir tap "mulai antar"
 		return next == domain.PackageStatusInDelivery && role == domain.UserRoleKurir
 
 	case domain.PackageStatusInDelivery:
-		// in_delivery -> delivered/failed: kurir submit delivery report
 		return (next == domain.PackageStatusDelivered ||
 			next == domain.PackageStatusFailed) &&
 			role == domain.UserRoleKurir
 
 	default:
-		// semua terminal state (delivered, failed) - tidak ada transisi lanjutan
 		return false
 	}
 }

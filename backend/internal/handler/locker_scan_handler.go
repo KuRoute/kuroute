@@ -47,6 +47,8 @@ func (h *LockerScanHandler) ScanIn(w http.ResponseWriter, r *http.Request) {
 			response.Fail(w, http.StatusNotFound, "PACKAGE_NOT_FOUND", err.Error())
 		case errors.Is(err, services.ErrLockerScanAlreadyCheckedIn):
 			response.Fail(w, http.StatusConflict, "LOCKER_SCAN_ALREADY_ACTIVE", err.Error())
+		case errors.Is(err, services.ErrPackageStatusTransition):
+			response.Fail(w, http.StatusConflict, "INVALID_PACKAGE_STATUS", err.Error())
 		default:
 			response.Fail(w, http.StatusInternalServerError, "SCAN_IN_FAILED", err.Error())
 		}
@@ -82,6 +84,8 @@ func (h *LockerScanHandler) ScanOut(w http.ResponseWriter, r *http.Request) {
 			response.Fail(w, http.StatusNotFound, "LOCKER_SCAN_NOT_FOUND", err.Error())
 		case errors.Is(err, services.ErrLockerScanAlreadyCheckedOut):
 			response.Fail(w, http.StatusConflict, "LOCKER_SCAN_ALREADY_CHECKED_OUT", err.Error())
+		case errors.Is(err, services.ErrPackageStatusTransition):
+			response.Fail(w, http.StatusConflict, "INVALID_PACKAGE_STATUS", err.Error())
 		default:
 			response.Fail(w, http.StatusInternalServerError, "SCAN_OUT_FAILED", err.Error())
 		}

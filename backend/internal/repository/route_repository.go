@@ -42,7 +42,7 @@ func (r *RouteRepository) CreateRouteWithStops(route *domain.Route, stops []doma
 
 func (r *RouteRepository) FindByID(id uuid.UUID) (*domain.Route, error) {
 	var route domain.Route
-	result := r.db.Preload("Stops").Preload("Stops.Package").First(&route, "id = ?", id)
+	result := r.db.Preload("CourierBatch").Preload("CourierBatch.BatchAssignment").Preload("Stops").Preload("Stops.Package").First(&route, "id = ?", id)
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return nil, result.Error
 	}
@@ -51,7 +51,7 @@ func (r *RouteRepository) FindByID(id uuid.UUID) (*domain.Route, error) {
 
 func (r *RouteRepository) FindByHubID(hubID uuid.UUID, batchDate *time.Time) ([]domain.Route, error) {
 	var routes []domain.Route
-	query := r.db.Preload("Stops").Preload("Stops.Package").Joins("JOIN courier_batch ON courier_batch.id = route.courier_batch_id").Joins("JOIN batch_assignment ON batch_assignment.id = courier_batch.batch_assignment_id").Joins("JOIN locker ON locker.id = batch_assignment.locker_id").Where("locker.hub_id = ?", hubID)
+	query := r.db.Preload("CourierBatch").Preload("CourierBatch.BatchAssignment").Preload("Stops").Preload("Stops.Package").Joins("JOIN courier_batch ON courier_batch.id = route.courier_batch_id").Joins("JOIN batch_assignment ON batch_assignment.id = courier_batch.batch_assignment_id").Joins("JOIN locker ON locker.id = batch_assignment.locker_id").Where("locker.hub_id = ?", hubID)
 
 	if batchDate != nil {
 		query = query.Where("batch_assignment.batch_date = ?", batchDate.Format("2006-01-02"))
