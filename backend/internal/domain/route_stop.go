@@ -9,7 +9,7 @@ import "github.com/google/uuid"
 // lat/lng are copied from Package at computation time to keep
 // the route immutable even if the package address is later corrected.
 type RouteStop struct {
-	ID        uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	ID        uuid.UUID     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
 	RouteID   uuid.UUID     `gorm:"type:uuid;not null;index:idx_route_stop_route"  json:"routeId"`
 	PackageID uuid.UUID     `gorm:"type:uuid;not null"                             json:"packageId"`
 	StopOrder int16         `gorm:"not null;index:idx_route_stop_route"            json:"stopOrder"`
@@ -42,6 +42,20 @@ type RouteStopResponse struct {
 	AddressText   string `json:"addressText,omitempty"`
 }
 
+type RouteStopDetailResponse struct {
+	ID        uuid.UUID     `json:"id"`
+	RouteID   uuid.UUID     `json:"routeId"`
+	PackageID uuid.UUID     `json:"packageId"`
+	StopOrder int16         `json:"stopOrder"`
+	Lat       float64       `json:"lat"`
+	Lng       float64       `json:"lng"`
+	Status    PackageStatus `json:"status"`
+
+	RecipientName  string                  `json:"recipientName,omitempty"`
+	AddressText    string                  `json:"addressText,omitempty"`
+	DeliveryReport *DeliveryReportResponse `json:"deliveryReport,omitempty"`
+}
+
 func NewRouteStopResponse(rs *RouteStop) RouteStopResponse {
 	resp := RouteStopResponse{
 		ID:        rs.ID,
@@ -54,7 +68,34 @@ func NewRouteStopResponse(rs *RouteStop) RouteStopResponse {
 	}
 	if rs.Package.ID != (uuid.UUID{}) {
 		resp.RecipientName = rs.Package.RecipientName
-		resp.AddressText   = rs.Package.AddressText
+		resp.AddressText = rs.Package.AddressText
+	}
+	return resp
+}
+
+func NewRouteStopDetailResponse(rs *RouteStop) RouteStopDetailResponse {
+	resp := RouteStopDetailResponse{
+		ID:        rs.ID,
+		RouteID:   rs.RouteID,
+		PackageID: rs.PackageID,
+		StopOrder: rs.StopOrder,
+		Lat:       rs.Lat,
+		Lng:       rs.Lng,
+		Status:    rs.Status,
+	}
+	if rs.Package.ID != (uuid.UUID{}) {
+		resp.RecipientName = rs.Package.RecipientName
+		resp.AddressText = rs.Package.AddressText
+	}
+	if len(rs.DeliveryReports) > 0 {
+		latest := rs.DeliveryReports[0]
+		for _, report := range rs.DeliveryReports[1:] {
+			if report.ReportedAt.After(latest.ReportedAt) {
+				latest = report
+			}
+		}
+		deliveryReport := NewDeliveryReportResponse(&latest)
+		resp.DeliveryReport = &deliveryReport
 	}
 	return resp
 }
