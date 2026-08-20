@@ -22,9 +22,10 @@ var (
 	ErrLockerScanAlreadyCheckedIn  = errors.New("package is already scanned into a locker")
 	ErrLockerScanAlreadyCheckedOut = errors.New("package is already scanned out from locker")
 	ErrLockerScanHistoryForbidden  = errors.New("not authorized to view package locker history")
+	ErrPackageStatusTransition     = errors.New("package is not in the required status")
 )
 
-func NewLockerScanService( lockerScanRepository *repository.LockerScanRepository, lockerRepository *repository.LockerRepository, packageRepository *repository.PackageRepository) *LockerScanService {
+func NewLockerScanService(lockerScanRepository *repository.LockerScanRepository, lockerRepository *repository.LockerRepository, packageRepository *repository.PackageRepository) *LockerScanService {
 	return &LockerScanService{
 		lockerScanRepository: lockerScanRepository,
 		lockerRepository:     lockerRepository,
@@ -40,7 +41,7 @@ func (s *LockerScanService) ScanIn(actor middleware.AuthUser, req *domain.ScanPa
 		return nil, errors.New("request can't be empty")
 	}
 
-	if  actor.Role != domain.UserRoleStaffSortir {
+	if actor.Role != domain.UserRoleStaffSortir {
 		return nil, ErrForbiddenHubAccess
 	}
 
@@ -52,7 +53,7 @@ func (s *LockerScanService) ScanIn(actor middleware.AuthUser, req *domain.ScanPa
 		return nil, err
 	}
 
-	if actor.Role != domain.UserRoleStaffSortir && locker.HubID != actor.HubID {
+	if locker.HubID != actor.HubID {
 		return nil, ErrForbiddenHubAccess
 	}
 
@@ -64,8 +65,11 @@ func (s *LockerScanService) ScanIn(actor middleware.AuthUser, req *domain.ScanPa
 		return nil, err
 	}
 
-	if actor.Role != domain.UserRoleStaffSortir && pkg.HubID != actor.HubID {
+	if pkg.HubID != actor.HubID {
 		return nil, ErrForbiddenHubAccess
+	}
+	if pkg.Status != domain.PackageStatusReceived {
+		return nil, ErrPackageStatusTransition
 	}
 
 	if _, err := s.lockerScanRepository.FindActiveByPackageID(req.PackageID); err == nil {
@@ -74,20 +78,16 @@ func (s *LockerScanService) ScanIn(actor middleware.AuthUser, req *domain.ScanPa
 		return nil, err
 	}
 
-	if pkg.Status == domain.PackageStatusReceived {
-		pkg.Status = domain.PackageStatusSorted
-		if err := s.packageRepository.UpdatePackageStatus(pkg); err != nil {
-			return nil, err
-		}
-	}
-
 	scan := &domain.LockerScan{
 		LockerID:    req.LockerID,
 		PackageID:   req.PackageID,
 		ScannedByID: actor.UserID,
 		ScannedAt:   time.Now(),
 	}
-	if err := s.lockerScanRepository.Create(scan); err != nil {
+	if err := s.lockerScanRepository.CreateWithPackageStatus(scan, domain.PackageStatusReceived, domain.PackageStatusSorted); err != nil {
+		if errors.Is(err, repository.ErrPackageStatusTransition) {
+			return nil, ErrPackageStatusTransition
+		}
 		return nil, err
 	}
 
@@ -120,7 +120,7 @@ func (s *LockerScanService) ScanOut(actor middleware.AuthUser, req *domain.ScanP
 		return nil, err
 	}
 
-	if actor.Role != domain.UserRoleKurir && locker.HubID != actor.HubID {
+	if locker.HubID != actor.HubID {
 		return nil, ErrForbiddenHubAccess
 	}
 
@@ -128,9 +128,26 @@ func (s *LockerScanService) ScanOut(actor middleware.AuthUser, req *domain.ScanP
 		return nil, ErrLockerScanAlreadyCheckedOut
 	}
 
+	pkg, err := s.packageRepository.GetPackageByID(req.PackageID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrPackageNotFound
+		}
+		return nil, err
+	}
+	if pkg.Status != domain.PackageStatusSorted {
+		return nil, ErrPackageStatusTransition
+	}
+
 	scan.ScannedOutAt = timeNowPtr
 	scan.ScannedOutByID = &actor.UserID
-	if err := s.lockerScanRepository.Update(scan); err != nil {
+	if err := s.lockerScanRepository.UpdateWithPackageStatus(scan, domain.PackageStatusSorted, domain.PackageStatusAssigned); err != nil {
+		if errors.Is(err, repository.ErrPackageStatusTransition) {
+			return nil, ErrPackageStatusTransition
+		}
+		if errors.Is(err, repository.ErrLockerScanAlreadyCheckedOut) {
+			return nil, ErrLockerScanAlreadyCheckedOut
+		}
 		return nil, err
 	}
 

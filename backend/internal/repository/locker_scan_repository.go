@@ -11,6 +11,11 @@ import (
 	"gorm.io/gorm"
 )
 
+var (
+	ErrPackageStatusTransition     = errors.New("package status transition failed")
+	ErrLockerScanAlreadyCheckedOut = errors.New("locker scan already checked out")
+)
+
 type LockerScanRepository struct {
 	db *database.DB
 }
@@ -22,6 +27,42 @@ func NewLockerScanRepository(db *database.DB) *LockerScanRepository {
 func (r *LockerScanRepository) Create(scan *domain.LockerScan) error {
 	result := r.db.Create(scan)
 	return result.Error
+}
+
+func (r *LockerScanRepository) CreateWithPackageStatus(scan *domain.LockerScan, from, to domain.PackageStatus) error {
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		result := tx.Model(&domain.Package{}).Where("id = ? AND status = ?", scan.PackageID, from).Update("status", to)
+		if result.Error != nil {
+			return result.Error
+		}
+		if result.RowsAffected != 1 {
+			return ErrPackageStatusTransition
+		}
+		return tx.Create(scan).Error
+	})
+}
+
+func (r *LockerScanRepository) UpdateWithPackageStatus(scan *domain.LockerScan, from, to domain.PackageStatus) error {
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		result := tx.Model(&domain.Package{}).Where("id = ? AND status = ?", scan.PackageID, from).Update("status", to)
+		if result.Error != nil {
+			return result.Error
+		}
+		if result.RowsAffected != 1 {
+			return ErrPackageStatusTransition
+		}
+
+		result = tx.Model(&domain.LockerScan{}).
+			Where("id = ? AND scanned_out_at IS NULL", scan.ID).
+			Updates(map[string]any{"scanned_out_at": scan.ScannedOutAt, "scanned_out_by": scan.ScannedOutByID})
+		if result.Error != nil {
+			return result.Error
+		}
+		if result.RowsAffected != 1 {
+			return ErrLockerScanAlreadyCheckedOut
+		}
+		return nil
+	})
 }
 
 func (r *LockerScanRepository) FindByID(id uuid.UUID) (*domain.LockerScan, error) {

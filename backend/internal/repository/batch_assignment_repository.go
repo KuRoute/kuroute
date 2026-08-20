@@ -15,6 +15,11 @@ type BatchAssignmentRepository struct {
 	db *database.DB
 }
 
+var (
+	ErrBatchStatusTransition     = errors.New("courier batch status transition failed")
+	ErrRouteStopStatusTransition = errors.New("route stop status transition failed")
+)
+
 func NewBatchAssignmentRepository(db *database.DB) *BatchAssignmentRepository {
 	return &BatchAssignmentRepository{db: db}
 }
@@ -111,6 +116,41 @@ func (r *BatchAssignmentRepository) FindCourierBatchByAssignmentID(batchAssignme
 func (r *BatchAssignmentRepository) UpdateCourierBatch(courierBatch *domain.CourierBatch) error {
 	result := r.db.Model(&domain.CourierBatch{}).Where("id = ?", courierBatch.ID).Updates(courierBatch)
 	return result.Error
+}
+
+func (r *BatchAssignmentRepository) StartCourierBatch(courierBatchID, lockerID uuid.UUID, startedAt time.Time) (int64, error) {
+	var updated int64
+	err := r.db.Transaction(func(tx *gorm.DB) error {
+		result := tx.Model(&domain.Package{}).
+			Where("id IN (SELECT package_id FROM locker_scan WHERE locker_id = ? AND scanned_out_at IS NOT NULL) AND status = ?", lockerID, domain.PackageStatusAssigned).
+			Update("status", domain.PackageStatusInDelivery)
+		if result.Error != nil {
+			return result.Error
+		}
+		updated = result.RowsAffected
+
+		stopResult := tx.Model(&domain.RouteStop{}).
+			Where("package_id IN (SELECT package_id FROM locker_scan WHERE locker_id = ? AND scanned_out_at IS NOT NULL) AND status = ?", lockerID, domain.PackageStatusAssigned).
+			Update("status", domain.PackageStatusInDelivery)
+		if stopResult.Error != nil {
+			return stopResult.Error
+		}
+		if stopResult.RowsAffected != updated {
+			return ErrRouteStopStatusTransition
+		}
+
+		batchResult := tx.Model(&domain.CourierBatch{}).
+			Where("id = ? AND status IN (?, ?)", courierBatchID, domain.BatchStatusPendingRoute, domain.BatchStatusRouteReady).
+			Updates(map[string]any{"status": domain.BatchStatusInProgress, "started_at": startedAt})
+		if batchResult.Error != nil {
+			return batchResult.Error
+		}
+		if batchResult.RowsAffected != 1 {
+			return ErrBatchStatusTransition
+		}
+		return nil
+	})
+	return updated, err
 }
 
 func (r *BatchAssignmentRepository) FindRouteByAssignmentID(batchAssignmentID uuid.UUID) (*domain.Route, error) {

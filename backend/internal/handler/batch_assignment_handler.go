@@ -279,6 +279,8 @@ func (h *BatchAssignmentHandler) StartBatch(w http.ResponseWriter, r *http.Reque
 			response.Fail(w, http.StatusNotFound, "BATCH_ASSIGNMENT_NOT_FOUND", err.Error())
 		case errors.Is(err, services.ErrBatchAlreadyStarted):
 			response.Fail(w, http.StatusConflict, "BATCH_ALREADY_STARTED", err.Error())
+		case errors.Is(err, services.ErrNoPackagesToStart):
+			response.Fail(w, http.StatusConflict, "NO_PACKAGES_READY", err.Error())
 		default:
 			response.Fail(w, http.StatusInternalServerError, "START_FAILED", err.Error())
 		}
