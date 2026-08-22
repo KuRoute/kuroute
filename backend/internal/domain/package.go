@@ -31,6 +31,7 @@ type Package struct {
 	ReceivedAt    time.Time     `gorm:"not null;default:now()"               json:"receivedAt"`
 
 	Hub Hub `gorm:"foreignKey:HubID" json:"-"`
+	LockerClusterAssignment *LockerClusterAssignment `gorm:"foreignKey:PackageID" json:"-"`
 }
 
 func (Package) TableName() string { return "package" }
