@@ -17,6 +17,7 @@ type CourierBatchService struct {
 
 var (
 	ErrCourierBatchNotFound = errors.New("courier batch not found")
+	ErrInvalidBatchStatus   = errors.New("invalid courier batch status")
 )
 
 func NewCourierBatchService(courierBatchRepository *repository.CourierBatchRepository) *CourierBatchService {
@@ -84,5 +85,24 @@ func (s *CourierBatchService) ListMyCourierBatches(actor middleware.AuthUser) ([
 		resp = append(resp, mapped)
 	}
 
+	return resp, nil
+}
+
+func (s *CourierBatchService) ListInternalCourierBatches(status domain.BatchStatus) ([]domain.InternalCourierBatchResponse, error) {
+	switch status {
+	case domain.BatchStatusPendingRoute, domain.BatchStatusRouteReady, domain.BatchStatusInProgress, domain.BatchStatusCompleted:
+	default:
+		return nil, ErrInvalidBatchStatus
+	}
+
+	batches, err := s.courierBatchRepository.FindByStatus(status)
+	if err != nil {
+		return nil, err
+	}
+
+	resp := make([]domain.InternalCourierBatchResponse, 0, len(batches))
+	for _, batch := range batches {
+		resp = append(resp, domain.NewInternalCourierBatchResponse(&batch))
+	}
 	return resp, nil
 }

@@ -13,16 +13,16 @@ const (
 	BatchStatusPendingRoute BatchStatus = "pending_route" // assignment dibuat, solver belum jalan
 	BatchStatusRouteReady   BatchStatus = "route_ready"   // rute sudah dihitung, kurir belum berangkat
 	BatchStatusInProgress   BatchStatus = "in_progress"   // kurir sedang di jalan
-	BatchStatusCompleted    BatchStatus = "completed"      // semua stop selesai
+	BatchStatusCompleted    BatchStatus = "completed"     // semua stop selesai
 )
 
 // Model
 type CourierBatch struct {
-	ID            		uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	BatchAssignmentID 	uuid.UUID   `gorm:"type:uuid;not null;uniqueIndex" json:"batchAssignmentId"`
-	Status            	BatchStatus `gorm:"type:batch_status;not null;default:'pending_route'" json:"status"`
-	StartedAt         	*time.Time  `gorm:"default:null"                   json:"startedAt"`   // nil until courier taps "mulai"
-	CompletedAt       	*time.Time  `gorm:"default:null"                   json:"completedAt"` // nil until all stops done
+	ID                uuid.UUID   `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	BatchAssignmentID uuid.UUID   `gorm:"type:uuid;not null;uniqueIndex" json:"batchAssignmentId"`
+	Status            BatchStatus `gorm:"type:batch_status;not null;default:'pending_route'" json:"status"`
+	StartedAt         *time.Time  `gorm:"default:null"                   json:"startedAt"`   // nil until courier taps "mulai"
+	CompletedAt       *time.Time  `gorm:"default:null"                   json:"completedAt"` // nil until all stops done
 
 	BatchAssignment BatchAssignment `gorm:"foreignKey:BatchAssignmentID" json:"-"`
 }
@@ -41,6 +41,12 @@ type CourierBatchResponse struct {
 	CompletedAt       *time.Time  `json:"completedAt"`
 }
 
+type InternalCourierBatchResponse struct {
+	CourierBatchID uuid.UUID   `json:"courierBatchId"`
+	LockerID       uuid.UUID   `json:"lockerId"`
+	Status         BatchStatus `json:"status"`
+}
+
 func NewCourierBatchResponse(cb *CourierBatch) CourierBatchResponse {
 	return CourierBatchResponse{
 		ID:                cb.ID,
@@ -48,5 +54,13 @@ func NewCourierBatchResponse(cb *CourierBatch) CourierBatchResponse {
 		Status:            cb.Status,
 		StartedAt:         cb.StartedAt,
 		CompletedAt:       cb.CompletedAt,
+	}
+}
+
+func NewInternalCourierBatchResponse(cb *CourierBatch) InternalCourierBatchResponse {
+	return InternalCourierBatchResponse{
+		CourierBatchID: cb.ID,
+		LockerID:       cb.BatchAssignment.LockerID,
+		Status:         cb.Status,
 	}
 }

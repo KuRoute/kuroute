@@ -129,3 +129,25 @@ func (h *CourierBatchHandler) ListMyCourierBatches(w http.ResponseWriter, r *htt
 
 	response.OK(w, http.StatusOK, res)
 }
+
+func (h *CourierBatchHandler) ListInternalCourierBatches(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	statusStr := r.URL.Query().Get("status")
+	if statusStr == "" {
+		response.Fail(w, http.StatusBadRequest, "INVALID_STATUS", "status query parameter is required")
+		return
+	}
+
+	res, err := h.courierBatchService.ListInternalCourierBatches(domain.BatchStatus(statusStr))
+	if err != nil {
+		if errors.Is(err, services.ErrInvalidBatchStatus) {
+			response.Fail(w, http.StatusBadRequest, "INVALID_STATUS", err.Error())
+			return
+		}
+		response.Fail(w, http.StatusInternalServerError, "LIST_FAILED", err.Error())
+		return
+	}
+
+	response.OK(w, http.StatusOK, res)
+}
