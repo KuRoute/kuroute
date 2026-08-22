@@ -55,10 +55,19 @@ func main() {
 	batchAssignmentHandler := handler.NewBatchAssignmentHandler(batchAssignmentService)
 	courierBatchHandler := handler.NewCourierBatchHandler(courierBatchService)
 	routeHandler := handler.NewRouteHandler(routeService)
+	routeStopRepo := repository.NewRouteStopRepository(db)
+	routeStopService := services.NewRouteStopService(routeStopRepo, routeRepo)
+	routeStopHandler := handler.NewRouteStopHandler(routeStopService)
+	deliveryReportRepo := repository.NewDeliveryReportRepository(db)
+	deliveryReportService := services.NewDeliveryReportService(deliveryReportRepo, routeStopRepo, routeRepo, courierBatchRepo, packageRepo)
+	deliveryReportHandler := handler.NewDeliveryReportHandler(deliveryReportService)
+	lockerClusterAssignmentRepo := repository.NewLockerClusterAssignmentRepository(db)
+	lockerClusterAssignmentService := services.NewLockerClusterAssignmentService(lockerClusterAssignmentRepo)
+	lockerClusterAssignmentHandler := handler.NewLockerClusterAssignmentHandler(lockerClusterAssignmentService)
 	courierProfileHandler := handler.NewCourierProfileHandler(courierProfileService)
 
 	// Setup router
-	router := routes.SetupRouter(authHandler, hubHandler, userHandler, packageHandler, lockerHandler, lockerScanHandler, batchAssignmentHandler, courierBatchHandler, routeHandler, courierProfileHandler)
+	router := routes.SetupRouter(authHandler, hubHandler, userHandler, packageHandler, lockerHandler, lockerScanHandler, batchAssignmentHandler, courierBatchHandler, routeHandler, routeStopHandler, deliveryReportHandler, lockerClusterAssignmentHandler, courierProfileHandler)
 
 	port := os.Getenv("PORT")
 	if port == "" {
