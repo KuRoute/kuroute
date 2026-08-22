@@ -47,3 +47,13 @@ func (r *CourierBatchRepository) FindByCourierID(courierID uuid.UUID) ([]domain.
 	result := r.db.Preload("BatchAssignment").Joins("JOIN batch_assignment ON batch_assignment.id = courier_batch.batch_assignment_id").Where("batch_assignment.courier_id = ?", courierID).Order("batch_assignment.batch_date DESC, courier_batch.started_at DESC").Find(&batches)
 	return batches, result.Error
 }
+
+func (r *CourierBatchRepository) FindByStatus(status domain.BatchStatus) ([]domain.CourierBatch, error) {
+	var batches []domain.CourierBatch
+	result := r.db.
+		Preload("BatchAssignment").
+		Where("status = ?", status).
+		Order("id ASC").
+		Find(&batches)
+	return batches, result.Error
+}

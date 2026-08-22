@@ -10,6 +10,12 @@ import (
 )
 
 func RegisterCourierBatchRoutes(router *mux.Router, courierBatchHandler *handler.CourierBatchHandler) {
+	internalRoutes := router.PathPrefix("/internal/courier-batches").Subrouter()
+	internalRoutes.Use(middleware.ServiceMiddleware)
+	internalRoutes.Use(middleware.NameServiceMiddleware(domain.ServiceRoute))
+	internalRoutes.HandleFunc("", courierBatchHandler.ListInternalCourierBatches).
+		Methods(http.MethodGet, http.MethodOptions)
+
 	courierBatchRoutes := router.PathPrefix("/api/v1").Subrouter()
 	courierBatchRoutes.Use(middleware.AuthMiddleware)
 
