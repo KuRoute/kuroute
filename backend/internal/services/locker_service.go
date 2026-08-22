@@ -16,11 +16,13 @@ type LockerService struct {
 }
 
 var (
-	ErrLockerNotFound     = errors.New("locker not found")
-	ErrLockerLabelTaken   = errors.New("locker label already used in this hub")
-	ErrLockerNotEmpty     = errors.New("locker still has active packages")
-	ErrHubNotFound        = errors.New("hub not found")
-	ErrForbiddenHubAccess = errors.New("not authorized to access this hub's data")
+	ErrLockerNotFound        = errors.New("locker not found")
+	ErrLockerLabelTaken      = errors.New("locker label already used in this hub")
+	ErrLockerNotEmpty        = errors.New("locker still has active packages")
+	ErrHubNotFound           = errors.New("hub not found")
+	ErrForbiddenHubAccess    = errors.New("not authorized to access this hub's data")
+	ErrClusterPackageInvalid = errors.New("package is not eligible for clustering")
+	ErrClusterLockerInvalid  = errors.New("locker is not eligible for clustering")
 )
 
 func NewLockerService(lockerRepository *repository.LockerRepository, hubRepository *repository.HubRepository) *LockerService {
@@ -45,9 +47,8 @@ func (s *LockerService) CreateLocker(req *domain.CreateLockerRequest) (*domain.L
 	}
 
 	locker := &domain.Locker{
-		HubID:       req.HubID,
-		Label:       req.Label,
-		ClusterArea: req.ClusterArea,
+		HubID: req.HubID,
+		Label: req.Label,
 	}
 
 	if err := s.lockerRepository.Create(locker); err != nil {
@@ -91,6 +92,65 @@ func (s *LockerService) ListLockersByHub(actor middleware.AuthUser, hubID uuid.U
 	}
 
 	return resp, nil
+}
+
+func (s *LockerService) ListActivePackages(lockerID uuid.UUID) ([]domain.ActiveLockerPackageResponse, error) {
+	if _, err := s.lockerRepository.FindByID(lockerID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrLockerNotFound
+		}
+		return nil, err
+	}
+
+	packages, err := s.lockerRepository.FindActivePackages(lockerID)
+	if err != nil {
+		return nil, err
+	}
+
+	resp := make([]domain.ActiveLockerPackageResponse, 0, len(packages))
+	for _, pkg := range packages {
+		resp = append(resp, domain.ActiveLockerPackageResponse{
+			PackageID: pkg.ID,
+			Lat:       pkg.Lat,
+			Lng:       pkg.Lng,
+		})
+	}
+	return resp, nil
+}
+
+func (s *LockerService) ListAvailableLockers(actor middleware.AuthService, hubID uuid.UUID) ([]domain.AvailableLockerResponse, error) {
+	if actor.Service != domain.ServiceCluster {
+		return nil, ErrForbiddenHubAccess
+	}
+	lockers, err := s.lockerRepository.FindAvailableByHubID(hubID)
+	if err != nil {
+		return nil, err
+	}
+	resp := make([]domain.AvailableLockerResponse, 0, len(lockers))
+	for _, locker := range lockers {
+		resp = append(resp, domain.AvailableLockerResponse{ID: locker.ID, HubID: locker.HubID, Label: locker.Label})
+	}
+	return resp, nil
+}
+
+func (s *LockerService) CreateClusters(actor middleware.AuthService,req *domain.CreateClustersRequest) error {
+	if actor.Service != domain.ServiceCluster {
+		return ErrForbiddenHubAccess
+	}
+
+	if req == nil || len(req.Assignments) == 0 {
+		return ErrClusterPackageInvalid
+	}
+
+	for _, assignment := range req.Assignments {
+		if assignment.LockerID == uuid.Nil ||
+			assignment.ClusterArea == "" ||
+			len(assignment.PackageIDs) == 0 {
+			return ErrClusterPackageInvalid
+		}
+	}
+
+	return s.lockerRepository.CreateClusters(req.Assignments)
 }
 
 func (s *LockerService) UpdateLocker(actor middleware.AuthUser, id uuid.UUID, req domain.UpdateLockerRequest) (*domain.LockerResponse, error) {
