@@ -20,6 +20,7 @@ type Locker struct {
 
 	Hub      Hub       `gorm:"foreignKey:HubID"    json:"-"`
 	Packages []Package `gorm:"many2many:locker_scan;joinForeignKey:LockerID;joinReferences:PackageID" json:"-"`
+	ClusterAssignments []LockerClusterAssignment `gorm:"foreignKey:LockerID" json:"-"`
 }
 
 func (Locker) TableName() string { return "locker" }
@@ -29,9 +30,18 @@ func (Locker) TableName() string { return "locker" }
 // CreateLockerRequest is called by the clustering service,
 // not directly by a human operator.
 type CreateLockerRequest struct {
-	HubID       uuid.UUID `json:"hubId"       binding:"required"`
-	Label       string    `json:"label"       binding:"required,max=50"`
-	ClusterArea string    `json:"clusterArea" binding:"required,max=200"`
+	HubID uuid.UUID `json:"hubId"       binding:"required"`
+	Label string    `json:"label"       binding:"required,max=50"`
+}
+
+type CreateClusterPackagesRequest struct {
+	LockerID    uuid.UUID   `json:"lockerId" binding:"required"`
+	ClusterArea string      `json:"clusterArea" binding:"required,max=200"`
+	PackageIDs  []uuid.UUID `json:"packageIds" binding:"required,min=1"`
+}
+
+type CreateClustersRequest struct {
+	Assignments []CreateClusterPackagesRequest `json:"assignments" binding:"required,min=1,dive"`
 }
 
 type UpdateLockerRequest struct {
@@ -46,6 +56,18 @@ type LockerResponse struct {
 	Label       string    `json:"label"`
 	ClusterArea string    `json:"clusterArea"`
 	ClusteredAt time.Time `json:"clusteredAt"`
+}
+
+type ActiveLockerPackageResponse struct {
+	PackageID uuid.UUID `json:"packageId"`
+	Lat       float64   `json:"lat"`
+	Lng       float64   `json:"lng"`
+}
+
+type AvailableLockerResponse struct {
+	ID    uuid.UUID `json:"id"`
+	HubID uuid.UUID `json:"hubId"`
+	Label string    `json:"label"`
 }
 
 func NewLockerResponse(l *Locker) LockerResponse {
