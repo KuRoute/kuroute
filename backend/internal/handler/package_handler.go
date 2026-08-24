@@ -90,12 +90,12 @@ func (h *PackageHandler) GetPackagesByHubID(w http.ResponseWriter, r *http.Reque
 
 	status := domain.PackageStatus(statusStr)
 	switch status {
-	case	domain.PackageStatusReceived,
-			domain.PackageStatusSorted,
-			domain.PackageStatusAssigned,
-			domain.PackageStatusInDelivery,
-			domain.PackageStatusDelivered,
-			domain.PackageStatusFailed:
+	case domain.PackageStatusReceived,
+		domain.PackageStatusSorted,
+		domain.PackageStatusAssigned,
+		domain.PackageStatusInDelivery,
+		domain.PackageStatusDelivered,
+		domain.PackageStatusFailed:
 	// valid
 	default:
 		response.Fail(w, http.StatusBadRequest, "INVALID_STATUS", "Invalid package status")
@@ -103,6 +103,29 @@ func (h *PackageHandler) GetPackagesByHubID(w http.ResponseWriter, r *http.Reque
 	}
 
 	packs, err := h.packageService.GetPackageByHubAndStatus(hubID, status)
+	if err != nil {
+		response.Fail(w, http.StatusInternalServerError, "LIST_FAILED", err.Error())
+		return
+	}
+
+	response.OK(w, http.StatusOK, packs)
+}
+
+func (h *PackageHandler) GetUnclusteredPackagesByHubID(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if middleware.GetAuthService(r) == nil {
+		response.Fail(w, http.StatusUnauthorized, "UNAUTHORIZED", "Service authentication required")
+		return
+	}
+
+	hubID, err := uuid.Parse(mux.Vars(r)["hubId"])
+	if err != nil {
+		response.Fail(w, http.StatusBadRequest, "INVALID_ID", "Invalid hub ID")
+		return
+	}
+
+	packs, err := h.packageService.GetUnclusteredPackagesByHubID(hubID)
 	if err != nil {
 		response.Fail(w, http.StatusInternalServerError, "LIST_FAILED", err.Error())
 		return
@@ -173,14 +196,14 @@ func (h *PackageHandler) UpdatePackageStatus(w http.ResponseWriter, r *http.Requ
 	}
 
 	allowedRoles := map[domain.UserRole]bool{
-        domain.UserRoleAdmin:       true,
-        domain.UserRoleStaffSortir: true,
-        domain.UserRoleKurir:       true,
-    }
-    if !allowedRoles[authUser.Role] {
-        response.Fail(w, http.StatusForbidden, "FORBIDDEN", "Access denied")
-        return
-    }
+		domain.UserRoleAdmin:       true,
+		domain.UserRoleStaffSortir: true,
+		domain.UserRoleKurir:       true,
+	}
+	if !allowedRoles[authUser.Role] {
+		response.Fail(w, http.StatusForbidden, "FORBIDDEN", "Access denied")
+		return
+	}
 
 	vars := mux.Vars(r)
 	idStr := vars["id"]

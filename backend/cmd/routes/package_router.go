@@ -3,12 +3,19 @@ package routes
 import (
 	"net/http"
 
+	"github.com/KuRoute/kuroute/backend/internal/domain"
 	"github.com/KuRoute/kuroute/backend/internal/handler"
 	"github.com/KuRoute/kuroute/backend/internal/middleware"
 	"github.com/gorilla/mux"
 )
 
 func RegisterPackageRoutes(router *mux.Router, packageHandler *handler.PackageHandler) {
+	internalPackages := router.PathPrefix("/api/v1/internal/hubs/{hubId}/packages").Subrouter()
+	internalPackages.Use(middleware.ServiceMiddleware)
+	internalPackages.Use(middleware.NameServiceMiddleware(domain.ServiceCluster))
+	internalPackages.HandleFunc("/unclustered", packageHandler.GetUnclusteredPackagesByHubID).
+		Methods(http.MethodGet, http.MethodOptions)
+
 	packages := router.PathPrefix("/api/v1/packages").Subrouter()
 
 	packages.HandleFunc("", packageHandler.ListPackages).

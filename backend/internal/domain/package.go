@@ -30,7 +30,7 @@ type Package struct {
 	Status        PackageStatus `gorm:"type:package_status;not null;default:'received'" json:"status"`
 	ReceivedAt    time.Time     `gorm:"not null;default:now()"               json:"receivedAt"`
 
-	Hub Hub `gorm:"foreignKey:HubID" json:"-"`
+	Hub                     Hub                      `gorm:"foreignKey:HubID" json:"-"`
 	LockerClusterAssignment *LockerClusterAssignment `gorm:"foreignKey:PackageID" json:"-"`
 }
 
@@ -70,6 +70,14 @@ type PackageResponse struct {
 	ReceivedAt    time.Time     `json:"receivedAt"`
 }
 
+type UnclusteredPackageResponse struct {
+	ID         uuid.UUID `json:"id"`
+	HubID      uuid.UUID `json:"hubId"`
+	Lat        float64   `json:"lat"`
+	Lng        float64   `json:"lng"`
+	ReceivedAt time.Time `json:"receivedAt"`
+}
+
 func NewPackageResponse(p *Package) PackageResponse {
 	return PackageResponse{
 		ID:            p.ID,
@@ -81,5 +89,15 @@ func NewPackageResponse(p *Package) PackageResponse {
 		Lng:           p.Lng,
 		Status:        p.Status,
 		ReceivedAt:    p.ReceivedAt,
+	}
+}
+
+func NewUnclusteredPackageResponse(p *Package) UnclusteredPackageResponse {
+	return UnclusteredPackageResponse{
+		ID:         p.ID,
+		HubID:      p.HubID,
+		Lat:        p.Lat,
+		Lng:        p.Lng,
+		ReceivedAt: p.ReceivedAt,
 	}
 }
