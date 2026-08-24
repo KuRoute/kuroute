@@ -91,6 +91,20 @@ func (s *PackageService) GetPackageByHubAndStatus(hubID uuid.UUID, status domain
 	return resp, nil
 }
 
+func (s *PackageService) GetUnclusteredPackagesByHubID(hubID uuid.UUID) ([]domain.UnclusteredPackageResponse, error) {
+	packs, err := s.packageRepository.GetUnclusteredPackagesByHubID(hubID)
+	if err != nil {
+		return nil, err
+	}
+
+	resp := make([]domain.UnclusteredPackageResponse, 0, len(packs))
+	for _, p := range packs {
+		resp = append(resp, domain.NewUnclusteredPackageResponse(&p))
+	}
+
+	return resp, nil
+}
+
 func (s *PackageService) canUpdatePackageStatus(current, next domain.PackageStatus, role domain.UserRole) bool {
 	if role == domain.UserRoleAdmin {
 		return true

@@ -70,6 +70,20 @@ func (p *PackageRepository) GetPackageByHubIDAndStatus(hubId uuid.UUID, status d
 	return packs, result.Error
 }
 
+func (p *PackageRepository) GetUnclusteredPackagesByHubID(hubID uuid.UUID) ([]domain.Package, error) {
+	var packs []domain.Package
+
+	assignmentQuery := p.db.Model(&domain.LockerClusterAssignment{}).
+		Select("1").
+		Where("locker_cluster_assignment.package_id = package.id")
+	result := p.db.
+		Where("package.hub_id = ? AND package.status = ?", hubID, domain.PackageStatusReceived).
+		Where("NOT EXISTS (?)", assignmentQuery).
+		Find(&packs)
+
+	return packs, result.Error
+}
+
 func (p *PackageRepository) UpdatePackageStatus(pack *domain.Package) error {
 	result := p.db.Model(&domain.Package{}).Where("id = ?", pack.ID).Update("status", pack.Status)
 
